@@ -16,6 +16,8 @@ parser.add_argument("-p", help="partial scraping (per console)", action='store_t
 parser.add_argument("-m", help="manual mode (choose from multiple results)", action='store_true')
 parser.add_argument('-newpath', help="gamelist & boxart are written in $HOME/.emulationstation/%%NAME%%/", action='store_true')
 parser.add_argument('-fix', help="temporary thegamesdb missing platform fix", action='store_true')
+parser.add_argument('-keeptitle', help="keep original rom title or real arcade game title", action='store_true')
+parser.add_argument('-keepnotfound', help="keep rom in gamelist.xml when not found", action='store_true')
 args = parser.parse_args()
 
 def normalize(s):
@@ -98,8 +100,16 @@ def getFiles(base):
             dict.add(filepath)
     return dict
 
+def maybeChangeTitle(gameData, title):
+	if args.keeptitle:
+		print "keeping title %s" % title
+		gameData.find("GameTitle").text=title
+
 def getGameInfo(file,platformID):
-    title=re.sub(r'\[.*?\]|\(.*?\)', '', os.path.splitext(os.path.basename(file))[0]).strip()
+    if(args.keeptitle):
+	title=os.path.splitext(os.path.basename(file))[0]
+    else:
+	title=re.sub(r'\[.*?\]|\(.*?\)', '', os.path.splitext(os.path.basename(file))[0]).strip()
     if args.crc:
         crcvalue=crc(file)
         if args.v:
@@ -145,9 +155,21 @@ def getGameInfo(file,platformID):
             if result is not None and result.find("title").text is not None:
                 return result
         elif data.find("Game") is not None:
-            return data.findall("Game")[chooseResult(data)] if args.m else data.findall("Game")[autoChooseBestResult(data,title)]
+            	if args.m:
+			actualgame = data.findall("Game")[chooseResult(data)]
+		else:
+			actualgame = data.findall("Game")[autoChooseBestResult(data,title)]
+		# Keep original title
+		maybeChangeTitle(actualgame, title)
+		return actualgame
         else:
-            return None
+	    if args.keepnotfound:
+            	data = ET.Element('Game')
+       	    	datatitle = ET.SubElement(data, 'GameTitle')    
+	    	datatitle.text=title
+	    	return data
+	    else:
+		return None
     except Exception, err:
         print "Skipping game..(%s)" % str(err)
         return None

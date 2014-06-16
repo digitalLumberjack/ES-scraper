@@ -6,17 +6,19 @@ usage: scraper.py [-h] [-w value] [-noimg] [-v] [-f] [-crc] [-p]
 ES-scraper, a scraper for EmulationStation
 
 optional arguments:
-  -h, --help  show this help message and exit
-  -w value    defines a maximum width (in pixels) for boxarts (anything above
-              that will be resized to that value)
-  -noimg      disables boxart downloading
-  -v          verbose output
-  -f          force re-scraping (ignores and overwrites the current gamelist)
-  -crc        CRC scraping
-  -p          partial scraping (per console)
-  -m          manual mode (choose from multiple results)
-  -newpath    gamelist.xml & boxart are written in $HOME/.emulationstation/%NAME%/
-  -fix        temporary thegamesdb missing platform fix
+  -h, --help    show this help message and exit
+  -w value      defines a maximum width (in pixels) for boxarts (anything above
+                that will be resized to that value)
+  -noimg        disables boxart downloading
+  -v            verbose output
+  -f            force re-scraping (ignores and overwrites the current gamelist)
+  -crc          CRC scraping
+  -p            partial scraping (per console)
+  -m            manual mode (choose from multiple results)
+  -newpath      gamelist.xml & boxart are written in $HOME/.emulationstation/%NAME%/
+  -fix          temporary thegamesdb missing platform fix
+  -keeptitle    keep the original file title, or real arcade title for Arcade System
+  -keepnotfound write games in gamelist.xml even if game info cannot be found
 ```
 
 Quick script written in Python that uses various online sources to scrape artwork and game info and saves it as XML files to be read by EmulationStation.

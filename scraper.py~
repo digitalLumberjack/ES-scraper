@@ -102,6 +102,7 @@ def getFiles(base):
 
 def maybeChangeTitle(gameData, title):
 	if args.keeptitle:
+		print "keeping title %s" % title
 		gameData.find("GameTitle").text=title
 
 def getGameInfo(file,platformID):

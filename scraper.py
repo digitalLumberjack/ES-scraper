@@ -3,6 +3,8 @@ import os, imghdr, urllib, urllib2, sys, Image, argparse, zlib, unicodedata, re
 import difflib
 from xml.etree import ElementTree as ET
 from xml.etree.ElementTree import Element, SubElement
+import HTMLParser
+import httplib
 
 SCUMMVM = False
 
@@ -104,11 +106,69 @@ def maybeChangeTitle(gameData, title):
 	if args.keeptitle:
 		gameData.find("GameTitle").text=title
 
+def getMameworldArtwork(title, parent):
+    try:
+        conn = httplib.HTTPConnection("mrdo.mameworld.info")
+        conn.request("HEAD", "/mame_artwork/"+title+".png")
+        if(conn.getresponse().status == 200):
+            return "http://mrdo.mameworld.info/mame_artwork/"+title+".png"
+        else:
+            conn = httplib.HTTPConnection("mrdo.mameworld.info")
+            conn.request("HEAD", "/mame_artwork/"+parent+".png")
+            if(conn.getresponse().status == 200):
+                return "http://mrdo.mameworld.info/mame_artwork/"+parent+".png"
+        return None
+    except StandardError:
+        return None
+
+def getArcadeGameInfo(title):
+    print "Fetching real title for %s from mamedb.com" % title
+    URL  = "http://www.mamedb.com/game/%s" % title
+    mamedbdata = "".join(urllib2.urlopen(URL).readlines())
+    m    = re.search('<b>Name:.*</b>(.+?)\(clone of', mamedbdata)
+    if m is None:
+        m    = re.search('<b>Name:.*</b>(.+)<br/><b>Year', mamedbdata)
+    h = HTMLParser.HTMLParser()
+    if m:
+        print "Found game data for %s on mamedb.com" % m.group(1)
+        gamedata = ET.Element('Game')
+        datatitle = ET.SubElement(gamedata, 'GameTitle')    
+        datatitle.text=h.unescape(m.group(1))
+
+        parent = re.search('<b>Parent:&nbsp;</b>(.+)<br/>', mamedbdata)
+        if parent:
+            img = getMameworldArtwork(title,parent.group(1))
+        else:
+            img = getMameworldArtwork(title,None)
+
+        if img is None:
+            mamedbimg = re.search("<img src='(.*?)' alt='Snapshot", mamedbdata)
+            if mamedbimg:
+                print "found image on mamedb, added : %s" % mamedbimg.group(1)
+                img=h.unescape("http://www.mamedb.com"+mamedbimg.group(1))
+        if img is not None:
+            print "setting img %s" % img
+            dataimg = ET.SubElement(gamedata, 'Images')  
+            boxart = ET.SubElement(dataimg, 'boxart') 
+            boxart.set('side','front')
+            boxart.text = img
+        return gamedata
+    else:
+       print "No title found for %s on mamedb.com" % title
+       return None
+
+def fixImageURL(game):
+    image = game.find("Images/boxart[@side='front']")
+    image.text = "http://thegamesdb.net/banners/"+image.text
+
 def getGameInfo(file,platformID):
     if(args.keeptitle):
 	title=os.path.splitext(os.path.basename(file))[0]
     else:
 	title=re.sub(r'\[.*?\]|\(.*?\)', '', os.path.splitext(os.path.basename(file))[0]).strip()
+    platform = getPlatformName(platformID)
+    if platform == "Arcade" or platform == "NeoGeo": return getArcadeGameInfo(title)
+        
     if args.crc:
         crcvalue=crc(file)
         if args.v:
@@ -120,7 +180,6 @@ def getGameInfo(file,platformID):
         values={}
     else:
         URL = "http://thegamesdb.net/api/GetGame.php"
-        platform = getPlatformName(platformID)
         if SCUMMVM: 
             title = getScummvmTitle(title)
             args.fix = True #Scummvm doesn't have a proper platformID so we search all
@@ -160,6 +219,7 @@ def getGameInfo(file,platformID):
 			actualgame = data.findall("Game")[autoChooseBestResult(data,title)]
 		# Keep original title
 		maybeChangeTitle(actualgame, title)
+                fixImageURL(actualgame)
 		return actualgame
         else:
 	    if args.keepnotfound:
@@ -258,16 +318,16 @@ def getGenres(nodes):
 
 def resizeImage(img,output):
     maxWidth= args.w
-    if (img.size[0]>maxWidth):
-        print "Boxart over %spx. Resizing boxart.." % maxWidth
-        height = int((float(img.size[1])*float(maxWidth/float(img.size[0]))))
-        img.resize((maxWidth,height), Image.ANTIALIAS).save(output)
+    #if (img.size[0]>maxWidth):
+    print "Boxart over %spx. Resizing boxart.." % maxWidth
+    height = int((float(img.size[1])*float(maxWidth/float(img.size[0]))))
+    img.resize((maxWidth,height), Image.ANTIALIAS).save(output)
 
 def downloadBoxart(path,output):
-    if args.crc:
+    #if args.crc:
         os.system("wget -q %s --output-document=\"%s\"" % (path,output))
-    else:
-        os.system("wget -q http://thegamesdb.net/banners/%s --output-document=\"%s\"" % (path,output))
+    #else:
+    #    os.system("wget -q http://thegamesdb.net/banners/%s --output-document=\"%s\"" % (path,output))
 
 def skipGame(list, filepath):
     for game in list.iter("game"):
@@ -383,7 +443,6 @@ def scanFiles(SystemInfo):
                     str_pub=getPublisher(result)
                     str_dev=getDeveloper(result)
                     lst_genres=getGenres(result)
-    
                     if str_title is not None:
                         game = SubElement(gamelist, 'game')
                         path = SubElement(game, 'path')
@@ -401,14 +460,14 @@ def scanFiles(SystemInfo):
     
                     if str_des is not None:
                         desc.text=str_des
-    
+
                     if str_img is not None and args.noimg is False:
                         if args.newpath is True:
                             imgpath="./" + filename+os.path.splitext(str_img)[1]
                         else:
                             imgpath=os.path.abspath(os.path.join(root, filename+os.path.splitext(str_img)[1]))
     
-                        print "Downloading boxart.."
+                        print "Downloading boxart %s .."% str_img
     
                         downloadBoxart(str_img,imgpath)
                         imgpath=fixExtension(imgpath)

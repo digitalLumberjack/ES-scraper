@@ -414,6 +414,7 @@ def scanFiles(SystemInfo):
                             newgenre.text=genre.strip()
                 except KeyboardInterrupt:
                     print "Ctrl+C detected. Closing work now..."
+                    break
                 except Exception as e:
                     print "Exception caught! %s" % e
 

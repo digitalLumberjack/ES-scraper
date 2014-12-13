@@ -1,8 +1,19 @@
 #!/usr/bin/env python
-import os, imghdr, urllib, urllib2, sys, Image, argparse, zlib, unicodedata, re
+
+import argparse
 import difflib
+import Image
+import imghdr
+import os
+import re
+import readline
+import sys
+import unicodedata
+import urllib
+import urllib2
 from xml.etree import ElementTree as ET
 from xml.etree.ElementTree import Element, SubElement
+import zlib
 
 SCUMMVM = False
 
@@ -18,10 +29,14 @@ parser.add_argument('-newpath', help="gamelist & boxart are written in $HOME/.em
 parser.add_argument('-fix', help="temporary thegamesdb missing platform fix", action='store_true')
 args = parser.parse_args()
 
+# Used to signal user wants to manually define title from results
+class ManualTitleInterrupt(Exception):
+    pass
+
 def normalize(s):
    return ''.join((c for c in unicodedata.normalize('NFKD', unicode(s)) if unicodedata.category(c) != 'Mn'))
 
-def fixExtension(file):    
+def fixExtension(file):
     newfile="%s.%s" % (os.path.splitext(file)[0],imghdr.what(file))
     os.rename(file, newfile)
     return newfile
@@ -98,6 +113,81 @@ def getFiles(base):
             dict.add(filepath)
     return dict
 
+def getPlatformGameList(platformID):
+    platform = getPlatformName(platformID)
+    gamelist = urllib2.Request("http://thegamesdb.net/api/GetGamesList.php", urllib.urlencode({'platform' : platform}), headers={'User-Agent' : "RetroPie Scraper Browser"})
+    return ET.parse(urllib2.urlopen(gamelist)).getroot()
+
+def getGameInfo2(file, platformID, gamelist):
+    title=re.sub(r'\[.*?\]|\(.*?\)', '', os.path.splitext(os.path.basename(file))[0]).strip()
+    results=gamelist.findall('Game')
+    options = []
+
+    def getTitleOptions(title, results):
+        options = []
+        ch_exclude = set(',:&!')
+        common_words = ['in','of','the','and','to','a','-']
+
+        for i,v in enumerate(results):
+            check_title = getTitle(v)
+            check_title_2 = check_title.replace('-', ' ')
+            scrubbed_title = ''.join(ch for ch in title if ch not in ch_exclude)
+
+            word_list = filter(lambda x: x.lower() not in common_words \
+                                    and len(x) > 2, scrubbed_title.split() )
+
+            # Generate rank based on how many substring matches occurred.
+            # - Give high (99) rank to titles that appear entirely in results
+            game_rank = 0
+            if title.lower() in check_title.lower() \
+                    or title.lower() in check_title.replace('-', '').lower() \
+                    or title.lower() in check_title_2.lower():
+                game_rank = 99
+            else:
+                game_rank = len( re.findall("(%s)" % '|'.join(word_list), check_title) )
+            if game_rank:
+                options.append((game_rank, getTitle(v), getGamePlatform(v), getId(v)))
+        return options
+
+    # Search for matching title options
+    if len(results) > 1:
+        options = sorted(getTitleOptions(title, results),
+                         key=lambda x: (-x[0], x[1]))
+
+    result = None
+    while not result:
+        try:
+            choice = chooseResult2(options)
+            if choice is None:
+                print "Skipping game..."
+                return None
+            result = options[choice]
+        except KeyboardInterrupt:
+            raise KeyboardInterrupt
+        except ManualTitleInterrupt:
+            # Allow user to re-enter name of game title (manual search)
+            readline.set_startup_hook(lambda: readline.insert_text(title))
+            try:
+                new_title = raw_input("Enter new title: ")
+            finally:
+                readline.set_startup_hook()
+            print " ~ Searching for '%s' [%s]..." % (new_title, os.path.basename(file))
+            options = sorted(getTitleOptions(new_title, results),
+                             key=lambda x: (-x[0], x[1]))
+        except Exception as e:
+            print "Invalid selection (%s) " % e
+
+    # Retrieve full game data using ID
+    platform = getPlatformName(platformID)
+    try:
+        gamereq = urllib2.Request("http://thegamesdb.net/api/GetGame.php", urllib.urlencode({'id': result[3], 'platform' : platform}), headers={'User-Agent' : "RetroPie Scraper Browser"})
+        remotedata = urllib2.urlopen( gamereq )
+        data=ET.parse(remotedata).getroot()
+    except ET.ParseError:
+        print "Malformed XML found, skipping game.. (source: {%s})" % URL
+        return None
+    return data.find("Game")
+
 def getGameInfo(file,platformID):
     title=re.sub(r'\[.*?\]|\(.*?\)', '', os.path.splitext(os.path.basename(file))[0]).strip()
     if args.crc:
@@ -112,20 +202,20 @@ def getGameInfo(file,platformID):
     else:
         URL = "http://thegamesdb.net/api/GetGame.php"
         platform = getPlatformName(platformID)
-        if SCUMMVM: 
+        if SCUMMVM:
             title = getScummvmTitle(title)
             args.fix = True #Scummvm doesn't have a proper platformID so we search all
-        if platform == "Arcade" or platform == "NeoGeo": title = getRealArcadeTitle(title)		
-        
+        if platform == "Arcade" or platform == "NeoGeo": title = getRealArcadeTitle(title)
+
         if args.fix:
-            try:                
+            try:
                 fixreq = urllib2.Request("http://thegamesdb.net/api/GetGamesList.php", urllib.urlencode({'name' : title, 'platform' : platform}), headers={'User-Agent' : "RetroPie Scraper Browser"})
                 fixdata=ET.parse(urllib2.urlopen(fixreq)).getroot()
-                if fixdata.find("Game") is not None:        
+                if fixdata.find("Game") is not None:
 
                     #values={ 'id': fixdata.findall("Game/id")[chooseResult(fixdata)].text if args.m else fixdata.find("Game/id").text }
                     values={ 'id': fixdata.findall("Game/id")[chooseResult(fixdata)].text if args.m else fixdata.findall("Game/id")[autoChooseBestResult(fixdata,title)].text }
-					
+
             except:
                 return None
         else:
@@ -155,6 +245,9 @@ def getGameInfo(file,platformID):
 def getText(node):
     return normalize(node.text) if node is not None else None
 
+def getId(nodes):
+    return getText(nodes.find("id"))
+
 def getTitle(nodes):
     if args.crc:
         return getText(nodes.find("title"))
@@ -166,7 +259,7 @@ def getGamePlatform(nodes):
         return getText(nodes.find("system_title"))
     else:
         return getText(nodes.find("Platform"))
-		
+
 def getScummvmTitle(title):
     print "Fetching real title for %s from scummvm.org" % title
     URL  = "http://scummvm.org/compatibility/DEV/%s" % title.split("-")[0]
@@ -177,7 +270,7 @@ def getScummvmTitle(title):
        return m.groups()[0]
     else:
        print "No title found for %s on scummvm.org" % title
-       return title		
+       return title
 
 def getRealArcadeTitle(title):
     print "Fetching real title for %s from mamedb.com" % title
@@ -224,6 +317,12 @@ def getDeveloper(nodes):
     else:
         return getText(nodes.find("Developer"))
 
+def getRating(nodes):
+    if args.crc:
+        return None
+    else:
+        return getText(nodes.find("Rating"))
+
 def getGenres(nodes):
     genres=[]
     if args.crc and nodes.find("genre") is not None:
@@ -267,8 +366,38 @@ def chooseResult(nodes):
         return int(raw_input("Select a result (or press Enter to skip): "))
     else:
         return 0
-		
-		
+
+def chooseResult2(options):
+    if len(options) > 0:
+        count = 0
+        for i, v in enumerate(options):
+            rank  = v[0]
+            title = v[1]
+            try:
+                print " [%s] %s  (+%s)" % (i, title, rank)
+            except Exception as e:
+                print "Exception! %s %s" % (e, title)
+            count += 1
+            if count >= 50:
+                print "    ... Limiting to top 50 results (of %s) ..." % len(options)
+                break
+        print " [r] -> Enter new title to search"
+        choice = raw_input("Select a result (or press Enter to skip): ")
+        if choice in ['r', 'R']:
+            raise ManualTitleInterrupt
+        if not choice and choice != "0":
+            return None
+        return int(choice)
+    else:
+        print "* No options found. "
+        choice = raw_input("Enter 'r' to search alternate title, or press Enter to skip): ")
+        if choice in ['r', 'R']:
+            raise ManualTitleInterrupt
+        if not choice and choice != "0":
+            return None
+        raise ValueError
+
+
 def autoChooseBestResult(nodes,t):
     results=nodes.findall('Game')
     t = t.split('(', 1)[0]
@@ -322,6 +451,8 @@ def scanFiles(SystemInfo):
         print "%s : %s" % (destinationFolder, e.strerror)
         return
 
+    platform_gamelist = getPlatformGameList(platformID)
+
     print "Scanning folder..(%s)" % folderRoms
 
     if os.path.exists("gamelist.xml"):
@@ -341,28 +472,30 @@ def scanFiles(SystemInfo):
                 try:
                     filepath=os.path.abspath(os.path.join(root, files))
                     filename = os.path.splitext(files)[0]
-    
+
                     if gamelistExists and not args.f:
                         if skipGame(existinglist,filepath):
                             continue
-    
-                    print "Trying to identify %s.." % files
-    
-                    data=getGameInfo(filepath, platformID)
-     
+
+                    print "\nTrying to identify %s.." % files
+
+                    #data=getGameInfo(filepath, platformID)
+                    data=getGameInfo2(filepath, platformID, platform_gamelist)
+
                     if data is None:
                         continue
                     else:
                         result=data
-    
+
                     str_title=getTitle(result)
                     str_des=getDescription(result)
                     str_img=getImage(result)
                     str_rd=getRelDate(result)
                     str_pub=getPublisher(result)
                     str_dev=getDeveloper(result)
+                    str_rating=getRating(result)
                     lst_genres=getGenres(result)
-    
+
                     if str_title is not None:
                         game = SubElement(gamelist, 'game')
                         path = SubElement(game, 'path')
@@ -372,42 +505,54 @@ def scanFiles(SystemInfo):
                         releasedate = SubElement(game, 'releasedate')
                         publisher=SubElement(game, 'publisher')
                         developer=SubElement(game, 'developer')
+                        rating=SubElement(game, 'rating')
                         genres=SubElement(game, 'genres')
-    
+
                         path.text=filepath
                         name.text=str_title
                         print "Game Found: %s" % str_title
-    
+
                     if str_des is not None:
                         desc.text=str_des
-    
+
                     if str_img is not None and args.noimg is False:
+                        # Store boxart in a boxart/ folder (create if needed)
+                        boxart_folder = os.path.abspath(os.path.join(root, 'boxart'))
                         if args.newpath is True:
-                            imgpath="./" + filename+os.path.splitext(str_img)[1]
-                        else:
-                            imgpath=os.path.abspath(os.path.join(root, filename+os.path.splitext(str_img)[1]))
-    
+                            boxart_folder = './boxart'
+
+                        if not os.path.exists(boxart_folder):
+                            os.mkdir(boxart_folder)
+
+                        imgpath = os.path.join(boxart_folder, filename+os.path.splitext(str_img)[1])
+
                         print "Downloading boxart.."
-    
+
                         downloadBoxart(str_img,imgpath)
                         imgpath=fixExtension(imgpath)
                         image.text=imgpath
-    
+
                         if args.w:
                             try:
                                 resizeImage(Image.open(imgpath),imgpath)
                             except:
                                 print "Image resize error"
-    
+
                     if str_rd is not None:
                         releasedate.text=str_rd
-    
+
                     if str_pub is not None:
                         publisher.text=str_pub
-    
+
                     if str_dev is not None:
                         developer.text=str_dev
-    
+
+                    if str_rating is not None:
+                        flt_rating = float(str_rating)
+                        rating.text = "%.6f" % flt_rating
+                    else:
+                        rating.text = "0.000000"
+
                     if lst_genres is not None:
                         for genre in lst_genres:
                             newgenre = SubElement(genres, 'genre')

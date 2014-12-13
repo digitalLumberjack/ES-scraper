@@ -1,7 +1,8 @@
 ES-scraper
 =====================
 ```
-usage: scraper.py [-h] [-w value] [-noimg] [-v] [-f] [-crc] [-p]
+usage: scraper.py [-h] [-w value] [-noimg] [-v] [-f] [-crc] [-p] [-l]
+                  [-newpath] [-fix]
 
 ES-scraper, a scraper for EmulationStation
 
@@ -14,8 +15,8 @@ optional arguments:
   -f          force re-scraping (ignores and overwrites the current gamelist)
   -crc        CRC scraping
   -p          partial scraping (per console)
-  -m          manual mode (choose from multiple results)
-  -newpath    gamelist.xml & boxart are written in $HOME/.emulationstation/%NAME%/
+  -l          i'm feeling lucky (use first result)
+  -newpath    gamelist & boxart are written in $HOME/.emulationstation/%NAME%/
   -fix        temporary thegamesdb missing platform fix
 ```
 

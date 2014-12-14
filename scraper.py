@@ -18,7 +18,9 @@ import zlib
 SCUMMVM = False
 
 parser = argparse.ArgumentParser(description='ES-scraper, a scraper for EmulationStation')
-parser.add_argument("-w", metavar="value", help="defines a maximum width (in pixels) for boxarts (anything above that will be resized to that value)", type=int)
+parser.add_argument("-w", metavar="pixels", help="defines a maximum width (in pixels) for boxarts (anything above that will be resized to that value)", type=int)
+parser.add_argument("-t", metavar="pixels", help="defines a maximum height (in pixels) for boxarts (anything above that will be resized to that value)", type=int)
+parser.add_argument("-pisize", help="use best Raspberry Pi dimensions (375 x 350) for boxarts", action='store_true')
 parser.add_argument("-noimg", help="disables boxart downloading", action='store_true')
 parser.add_argument("-v", help="verbose output", action='store_true')
 parser.add_argument("-f", help="force re-scraping (ignores and overwrites the current gamelist)", action='store_true')
@@ -34,6 +36,9 @@ GAMESDB_BASE  = "http://thegamesdb.net/api/"
 PLATFORM_URL  = GAMESDB_BASE + "GetPlatform.php"
 GAMEINFO_URL  = GAMESDB_BASE + "GetGame.php"
 GAMESLIST_URL = GAMESDB_BASE + "GetGamesList.php"
+
+DEFAULT_WIDTH  = 375
+DEFAULT_HEIGHT = 350
 
 # Used to signal user wants to manually define title from results
 class ManualTitleInterrupt(Exception):
@@ -130,18 +135,34 @@ def getGameInfo(file, platformID, gamelist):
     results = gamelist.findall('Game')
     options = []
 
+    def stripRegionStrings(title):
+        # Strip out parens matching certain strings
+        #  e.g.  (Rev 1), (World), (USA, Japan)
+        region_match = '^\((?:Rev|USA|Japan|France|Europe|World|En,)'
+        parens = re.findall('(\(.*?\))', title)
+        for p in parens:
+            if re.match(region_match, p) is not None:
+                title = title.replace(' %s' % p, '')
+        return title
+
     def getTitleOptions(title, results):
         options = []
         ch_exclude = set(',:&!')
         common_words = ['in','of','the','and','to','a','-']
 
+        scrubbed_title = stripRegionStrings(title)
+        scrubbed_title = ''.join(ch for ch in scrubbed_title if ch not in ch_exclude)
+
+        word_list = filter(lambda x: x.lower() not in common_words \
+                              and len(x) > 2, scrubbed_title.split() )
+
         for i,v in enumerate(results):
             check_title = getTitle(v)
             check_title_2 = check_title.replace('-', ' ')
-            scrubbed_title = ''.join(ch for ch in title if ch not in ch_exclude)
+            scrubbed_check = ''.join(ch for ch in check_title if ch not in ch_exclude)
 
-            word_list = filter(lambda x: x.lower() not in common_words \
-                                    and len(x) > 2, scrubbed_title.split() )
+            check_word_list = filter(lambda x: x.lower() not in common_words \
+                                        and len(x) > 2, scrubbed_check.split() )
 
             # Generate rank based on how many substring matches occurred.
             game_rank = 0
@@ -151,7 +172,11 @@ def getGameInfo(file, platformID, gamelist):
                     or title.lower() == check_title.replace('-', '').lower() \
                     or title.lower() == check_title_2.lower():
                 game_rank = 100
-            # - Give high (99) rank to titles that appear entirely in results
+            # - Give high (99) rank to title if same words appear in result
+            #   (e.g.  "The Legend of Zelda" --> "Legend of Zelda, The"
+            elif sorted(word_list) == sorted(check_word_list):
+                game_rank = 99
+            # - Give high (95) rank to titles that appear entirely in results
             elif title.lower() in check_title.lower() \
                     or title.lower() in check_title.replace('-', '').lower() \
                     or title.lower() in check_title_2.lower():
@@ -221,6 +246,13 @@ def getTitle(nodes):
         return getText(nodes.find("title"))
     else:
         return getText(nodes.find("GameTitle"))
+
+def getAlternateTitles(nodes):
+    titles = []
+    altNode = nodes.find("AlternateTitles")
+    if altNode is not None:
+        titles = [getText(t) for t in altNode.findall("title")]
+    return titles
 
 def getGamePlatform(nodes):
     if args.crc:
@@ -302,14 +334,18 @@ def getGenres(nodes):
 
     return genres if len(genres)>0 else None
 
-def resizeImage(img,output):
+def resizeImage(img, output):
     maxWidth = args.w
-    if img.size[0] > maxWidth:
-        print "Boxart over %spx. Resizing boxart.." % maxWidth
-        height = int((float(img.size[1])*float(maxWidth/float(img.size[0]))))
-        img.resize((maxWidth,height), Image.ANTIALIAS).save(output)
+    maxHeight = args.t
+    if img.size[0] > maxWidth or img.size[1] > maxHeight:
+        if img.size[0] > maxWidth:
+            print "Boxart over %spx (width). Resizing boxart.." % maxWidth
+        elif img.size[1] > maxHeight:
+            print "Boxart over %spx (height). Resizing boxart.." % maxHeight
+        img.thumbnail((maxWidth, maxHeight), Image.ANTIALIAS)
+        img.save(output)
 
-def downloadBoxart(path,output):
+def downloadBoxart(path, output):
     if args.crc:
         os.system("wget -q %s --output-document=\"%s\"" % (path,output))
     else:
@@ -489,11 +525,12 @@ def scanFiles(SystemInfo):
                         imgpath = fixExtension(imgpath)
                         image.text = imgpath
 
-                        if args.w:
+                        if args.w or args.t:
                             try:
-                                resizeImage(Image.open(imgpath),imgpath)
-                            except:
+                                resizeImage(Image.open(imgpath), imgpath)
+                            except Exception as e:
                                 print "Image resize error"
+                                print str(e)
 
                     if str_rd is not None:
                         releasedate.text = str_rd
@@ -536,8 +573,17 @@ except IOError as e:
 ES_systems = readConfig(config)
 print parser.description
 
-if args.w:
-    print "Max width set: %spx." % str(args.w)
+if args.pisize:
+    print "Using Raspberry Pi boxart size: (%spx x %spx)" % (DEFAULT_WIDTH, DEFAULT_HEIGHT)
+    args.w = DEFAULT_WIDTH
+    args.t = DEFAULT_HEIGHT
+else:
+    if args.w:
+        print "Max width set: %spx." % str(args.w)
+        args.t = args.t if args.t else 999999
+    if args.t:
+        print "Max height set: %spx." % str(args.t)
+        args.w = args.w if args.w else 999999
 if args.noimg:
     print "Boxart downloading disabled."
 if args.f:

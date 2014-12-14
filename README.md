@@ -1,15 +1,18 @@
 ES-scraper
 =====================
 ```
-usage: scraper.py [-h] [-w value] [-noimg] [-v] [-f] [-crc] [-p] [-l]
-                  [-newpath] [-fix]
+usage: scraper.py [-h] [-w pixels] [-t pixels] [-pisize] [-noimg] [-v] [-f]
+                  [-crc] [-p] [-l] [-newpath] [-fix]
 
 ES-scraper, a scraper for EmulationStation
 
 optional arguments:
   -h, --help  show this help message and exit
-  -w value    defines a maximum width (in pixels) for boxarts (anything above
+  -w pixels   defines a maximum width (in pixels) for boxarts (anything above
               that will be resized to that value)
+  -t pixels   defines a maximum height (in pixels) for boxarts (anything above
+              that will be resized to that value)
+  -pisize     use best Raspberry Pi dimensions (375 x 350) for boxarts
   -noimg      disables boxart downloading
   -v          verbose output
   -f          force re-scraping (ignores and overwrites the current gamelist)

@@ -41,6 +41,10 @@ GAMESLIST_URL = GAMESDB_BASE + "GetGamesList.php"
 DEFAULT_WIDTH  = 375
 DEFAULT_HEIGHT = 350
 
+essettings_path = "/etc/emulationstation/es_systems.cfg"
+gamelists_path = os.environ['HOME']+"/.emulationstation/gamelists/"
+boxart_path = os.environ['HOME']+"/.emulationstation/downloaded_images/"
+
 # Used to signal user wants to manually define title from results
 class ManualTitleInterrupt(Exception):
     pass
@@ -61,6 +65,7 @@ def getArcadeRomNames():
         if m:
             #print "%s - %sxxx" % (m.groups()[0], m.groups()[1])
             arcaderoms[m.groups()[0]] = m.groups()[1]
+    fbafile.close()
     
     mamefile=open("./mame4all.txt")
     lines=mamefile.read().splitlines()
@@ -118,18 +123,18 @@ def getPlatformName(id):
     platform_data = ET.parse(data)
     return platform_data.find('Platform/Platform').text
 
-def exportList(gamelist):
+def exportList(gamelist, gamelist_path):
     if gamelistExists and args.f is False:
         for game in gamelist.iter("game"):
             existinglist.getroot().append(game)
 
         indent(existinglist.getroot())
-        ET.ElementTree(existinglist.getroot()).write("gamelist.xml")
-        print "Done! %s updated." % os.getcwd()+"/gamelist.xml"
+        ET.ElementTree(existinglist.getroot()).write(gamelist_path)
+        print "Done! %s updated." % gamelist_path
     else:
         indent(gamelist)
-        ET.ElementTree(gamelist).write("gamelist.xml")
-        print "Done! List saved on %s" % os.getcwd()+"/gamelist.xml"
+        ET.ElementTree(gamelist).write(gamelist_path)
+        print "Done! List saved on %s" % gamelist_path
 
 def getFiles(base):
     dict = set([])
@@ -425,6 +430,7 @@ def autoChooseBestResult(nodes,t):
 
 def scanFiles(SystemInfo):
     name = SystemInfo[0]
+    emulatorname = name
     if name == "scummvm":
         global SCUMMVM
         SCUMMVM = True
@@ -442,7 +448,7 @@ def scanFiles(SystemInfo):
     if args.newpath is False:
         destinationFolder = folderRoms;
     else:
-        destinationFolder = os.environ['HOME']+"/.emulationstation/%s/" % name
+        destinationFolder = os.environ['HOME']+"/.emulationstation/%s/" % emulatorname
     try:
         os.chdir(destinationFolder)
     except OSError as e:
@@ -452,13 +458,14 @@ def scanFiles(SystemInfo):
     platform_gamelist = getPlatformGameList(platformID)
 
     print "Scanning folder..(%s)" % folderRoms
+    gamelist_path = gamelists_path+"%s/gamelist.xml" % emulatorname
 
-    if os.path.exists("gamelist.xml"):
+    if os.path.exists(gamelist_path):
         try:
-            existinglist = ET.parse("gamelist.xml")
+            existinglist = ET.parse(gamelist_path)
             gamelistExists=True
             if args.v:
-                print "Gamelist already exists: %s" % os.path.abspath("gamelist.xml")
+                print "Gamelist already exists: %s" % gamelist_path
         except:
             gamelistExists = False
             print "There was an error parsing the list or file is empty"
@@ -468,7 +475,7 @@ def scanFiles(SystemInfo):
         for files in allfiles:
             if files.endswith(tuple(extension.split(' '))):
                 try:
-                    filepath = os.path.abspath(os.path.join(root, files))
+                    filepath = "./%s" % files
                     filename = os.path.splitext(files)[0]
 
                     if gamelistExists and not args.f:
@@ -521,10 +528,10 @@ def scanFiles(SystemInfo):
                         if args.newpath is True:
                             boxart_folder = './boxart'
 
-                        if not os.path.exists(boxart_folder):
-                            os.mkdir(boxart_folder)
+                        if not os.path.exists(boxart_path + "%s" % emulatorname):
+                            os.mkdir(boxart_path + "%s" % emulatorname)
 
-                        imgpath = os.path.join(boxart_folder, filename+os.path.splitext(str_img)[1])
+                        imgpath = boxart_path + "%s/%s" % (emulatorname, filename+os.path.splitext(str_img)[1])
 
                         print "Downloading boxart.."
 
@@ -568,13 +575,12 @@ def scanFiles(SystemInfo):
         print "No new games added."
     else:
         print "{} games added.".format(len(gamelist))
-        exportList(gamelist)
+        exportList(gamelist, gamelist_path)
 
 try:
     if os.getuid() == 0:
         os.environ['HOME']="/home/"+os.getenv("SUDO_USER")
-    #config=open(os.environ['HOME']+"/.emulationstation/es_systems.cfg")
-    config=open("/etc/emulationstation/es_systems.cfg")
+    config=open(essettings_path)
 except IOError as e:
     sys.exit("Error when reading config file: %s \nExiting.." % e.strerror)
 

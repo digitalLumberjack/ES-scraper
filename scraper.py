@@ -53,26 +53,22 @@ def fixExtension(file):
     return newfile
 
 def readConfig(file):
-    lines = config.read().splitlines()
-    systems = []
-    for line in lines:
-        if not line.strip() or line[0]=='#':
-            continue
+    systems=[]
+    config = ET.parse(file)
+    configroot = config.getroot()
+    for child in configroot:
+        name = child.find('name').text
+        path = child.find('path').text
+        ext = child.find('extension').text
+        platform = child.find('platform').text
+        p = child.find('platformid')
+        if child.find('platformid') is None:
+            print name, path, ext, platform
         else:
-            if "NAME=" in line:
-                name = line.split('=')[1]
-            if "PATH=" in line:
-                path = line.split('=')[1]
-            elif "EXTENSION" in line:
-                ext = line.split('=')[1]
-            elif "PLATFORMID" in line:
-                pid = line.split('=')[1]
-                if not pid:
-                    continue
-                else:
-                    system = (name,path,ext,pid)
-                    systems.append(system)
-    config.close()
+            pid = p.text
+            system=(name,path,ext,pid,platform)
+            systems.append(system)
+            print name, path, ext, pid, platform
     return systems
 
 def crc(fileName):
@@ -566,7 +562,8 @@ def scanFiles(SystemInfo):
 try:
     if os.getuid() == 0:
         os.environ['HOME']="/home/"+os.getenv("SUDO_USER")
-    config=open(os.environ['HOME']+"/.emulationstation/es_systems.cfg")
+    #config=open(os.environ['HOME']+"/.emulationstation/es_systems.cfg")
+    config=open("/etc/emulationstation/es_systems.cfg")
 except IOError as e:
     sys.exit("Error when reading config file: %s \nExiting.." % e.strerror)
 

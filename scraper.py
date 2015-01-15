@@ -212,7 +212,11 @@ def getGameInfo(file, platformID, gamelist):
         if args.l:
             if not options:     # If no options available, return None
                 return None
-            result = options[0]
+            if options[0][0] == 1:
+                print "match not high enough"
+                return None
+            else:
+                result = options[0]
             continue
 
         try:

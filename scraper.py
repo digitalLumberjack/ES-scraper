@@ -128,6 +128,9 @@ def getPlatformGameList(platformID):
 
 def getGameInfo(file, platformID, gamelist):
     title = re.sub(r'\[.*?\]|\(.*?\)', '', os.path.splitext(os.path.basename(file))[0]).strip()
+    # Retrieve full game data using ID
+    platform = getPlatformName(platformID)
+    if platform == "Arcade" or platform == "NeoGeo": title = getRealArcadeTitle(title)	
     results = gamelist.findall('Game')
     options = []
 
@@ -219,8 +222,6 @@ def getGameInfo(file, platformID, gamelist):
         except Exception as e:
             print "Invalid selection (%s) " % e
 
-    # Retrieve full game data using ID
-    platform = getPlatformName(platformID)
     try:
         gamereq = urllib2.Request(GAMEINFO_URL, urllib.urlencode({'id': result[3], 'platform' : platform}),
                                   headers={'User-Agent' : "RetroPie Scraper Browser"})

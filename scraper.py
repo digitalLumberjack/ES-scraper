@@ -16,6 +16,7 @@ from xml.etree.ElementTree import Element, SubElement
 import zlib
 
 SCUMMVM = False
+arcaderoms = {}
 
 parser = argparse.ArgumentParser(description='ES-scraper, a scraper for EmulationStation')
 parser.add_argument("-w", metavar="pixels", help="defines a maximum width (in pixels) for boxarts (anything above that will be resized to that value)", type=int)
@@ -52,6 +53,24 @@ def fixExtension(file):
     os.rename(file, newfile)
     return newfile
 
+def getArcadeRomNames():
+    fbafile=open("./fba2x.txt")
+    lines=fbafile.read().splitlines()
+    for line in lines:
+        m = re.search('^\| +([^ ]+) *\|[^|]*\| +([^|]+?) +\|.*$',line)
+        if m:
+            #print "%s - %sxxx" % (m.groups()[0], m.groups()[1])
+            arcaderoms[m.groups()[0]] = m.groups()[1]
+    
+    mamefile=open("./mame4all.txt")
+    lines=mamefile.read().splitlines()
+    for line in lines:
+        m = re.search('([^ ]+)\s+"(.+)"',line)
+        if m:
+            #print "%s - %s" % (m.groups()[0], m.groups()[1])
+            arcaderoms[m.groups()[0]] = m.groups()[1]
+    mamefile.close()
+    
 def readConfig(file):
     systems=[]
     config = ET.parse(file)
@@ -130,18 +149,13 @@ def getGameInfo(file, platformID, gamelist):
     title = re.sub(r'\[.*?\]|\(.*?\)', '', os.path.splitext(os.path.basename(file))[0]).strip()
     # Retrieve full game data using ID
     platform = getPlatformName(platformID)
-    if platform == "Arcade" or platform == "NeoGeo": title = getRealArcadeTitle(title)	
+    if platform == "Arcade" : title = getRealArcadeTitle(title)	
     results = gamelist.findall('Game')
     options = []
 
     def stripRegionStrings(title):
-        # Strip out parens matching certain strings
-        #  e.g.  (Rev 1), (World), (USA, Japan)
-        region_match = '^\((?:Rev|USA|Japan|France|Europe|World|En,)'
-        parens = re.findall('(\(.*?\))', title)
-        for p in parens:
-            if re.match(region_match, p) is not None:
-                title = title.replace(' %s' % p, '')
+        # Strip out parens
+        title = re.sub('(\(.*?\))', '', title)
         return title
 
     def getTitleOptions(title, results):
@@ -152,8 +166,7 @@ def getGameInfo(file, platformID, gamelist):
         scrubbed_title = stripRegionStrings(title)
         scrubbed_title = ''.join(ch for ch in scrubbed_title if ch not in ch_exclude)
 
-        word_list = filter(lambda x: x.lower() not in common_words \
-                              and len(x) > 2, scrubbed_title.split() )
+        word_list = filter(lambda x: x.lower() not in common_words, scrubbed_title.split() )
 
         for i,v in enumerate(results):
             check_title = getTitle(v)
@@ -182,6 +195,7 @@ def getGameInfo(file, platformID, gamelist):
                 game_rank = 95
             # - Otherwise, rank title by number of occurrences of words
             else:
+                #print "%s" % '|'.join(word_list)
                 game_rank = len( re.findall("(%s)" % '|'.join(word_list), check_title) )
             if game_rank:
                 options.append((game_rank, getTitle(v), getGamePlatform(v), getId(v)))
@@ -270,16 +284,8 @@ def getScummvmTitle(title):
        return title
 
 def getRealArcadeTitle(title):
-    print "Fetching real title for %s from mamedb.com" % title
-    URL  = "http://www.mamedb.com/game/%s" % title
-    data = "".join(urllib2.urlopen(URL).readlines())
-    m    = re.search('<b>Name:.*</b>(.+) .*<br/><b>Year', data)
-    if m:
-       print "Found real title %s for %s on mamedb.com" % (m.group(1), title)
-       return m.group(1)
-    else:
-       print "No title found for %s on mamedb.com" % title
-       return title
+    print "%s found title: %s" % (title, arcaderoms[title])
+    return arcaderoms[title]
 
 def getDescription(nodes):
     if args.crc:
@@ -569,6 +575,7 @@ except IOError as e:
     sys.exit("Error when reading config file: %s \nExiting.." % e.strerror)
 
 ES_systems = readConfig(config)
+getArcadeRomNames()
 print parser.description
 
 if args.pisize:

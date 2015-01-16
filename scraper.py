@@ -201,7 +201,7 @@ def getGameInfo(file, platformID, gamelist):
             # - Otherwise, rank title by number of occurrences of words
             else:
                 #print "%s" % '|'.join(word_list)
-                game_rank = len( re.findall("(%s)" % '|'.join(word_list), check_title) )
+                game_rank = len( re.findall("(%s)" % '|'.join(word_list), check_title, re.IGNORECASE) )
             if game_rank:
                 options.append((game_rank, getTitle(v), getGamePlatform(v), getId(v)))
         return options
@@ -524,9 +524,6 @@ def scanFiles(SystemInfo):
 
                     if str_img is not None and args.noimg is False:
                         # Store boxart in a boxart/ folder (create if needed)
-                        boxart_folder = os.path.abspath(os.path.join(root, 'boxart'))
-                        if args.newpath is True:
-                            boxart_folder = './boxart'
 
                         if not os.path.exists(boxart_path + "%s" % emulatorname):
                             os.mkdir(boxart_path + "%s" % emulatorname)

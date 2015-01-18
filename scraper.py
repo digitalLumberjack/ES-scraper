@@ -29,7 +29,6 @@ parser.add_argument("-crc", help="CRC scraping", action='store_true')
 parser.add_argument("-p", help="partial scraping (per console)", action='store_true')
 parser.add_argument("-l", help="i'm feeling lucky (use first result)", action='store_true')
 parser.add_argument('-newpath', help="gamelist & boxart are written in $HOME/.emulationstation/%%NAME%%/", action='store_true')
-parser.add_argument('-fix', help="temporary thegamesdb missing platform fix", action='store_true')
 args = parser.parse_args()
 
 # URLs for retrieving from TheGamesDB API

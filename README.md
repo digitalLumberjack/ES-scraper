@@ -20,7 +20,6 @@ optional arguments:
   -p          partial scraping (per console)
   -l          i'm feeling lucky (use first result)
   -newpath    gamelist & boxart are written in $HOME/.emulationstation/%NAME%/
-  -fix        temporary thegamesdb missing platform fix
 ```
 
 Quick script written in Python that uses various online sources to scrape artwork and game info and saves it as XML files to be read by EmulationStation.

@@ -28,7 +28,6 @@ parser.add_argument("-f", help="force re-scraping (ignores and overwrites the cu
 parser.add_argument("-crc", help="CRC scraping", action='store_true')
 parser.add_argument("-p", help="partial scraping (per console)", action='store_true')
 parser.add_argument("-l", help="i'm feeling lucky (use first result)", action='store_true')
-parser.add_argument('-newpath', help="gamelist & boxart are written in $HOME/.emulationstation/%%NAME%%/", action='store_true')
 args = parser.parse_args()
 
 # URLs for retrieving from TheGamesDB API
@@ -40,9 +39,6 @@ GAMESLIST_URL = GAMESDB_BASE + "GetGamesList.php"
 DEFAULT_WIDTH  = 375
 DEFAULT_HEIGHT = 350
 
-essettings_path = "/etc/emulationstation/es_systems.cfg"
-gamelists_path = os.environ['HOME']+"/.emulationstation/gamelists/"
-boxart_path = os.environ['HOME']+"/.emulationstation/downloaded_images/"
 
 # Used to signal user wants to manually define title from results
 class ManualTitleInterrupt(Exception):
@@ -444,10 +440,7 @@ def scanFiles(SystemInfo):
     gamelist = Element('gameList')
     folderRoms = os.path.expanduser(folderRoms)
 
-    if args.newpath is False:
-        destinationFolder = folderRoms;
-    else:
-        destinationFolder = os.environ['HOME']+"/.emulationstation/%s/" % emulatorname
+    destinationFolder = folderRoms;
     try:
         os.chdir(destinationFolder)
     except OSError as e:
@@ -527,7 +520,7 @@ def scanFiles(SystemInfo):
                         if not os.path.exists(boxart_path + "%s" % emulatorname):
                             os.mkdir(boxart_path + "%s" % emulatorname)
 
-                        imgpath = boxart_path + "%s/%s" % (emulatorname, filename+os.path.splitext(str_img)[1])
+                        imgpath = boxart_path + "%s/%s-image%s" % (emulatorname, filename,os.path.splitext(str_img)[1])
 
                         print "Downloading boxart.."
 
@@ -573,9 +566,24 @@ def scanFiles(SystemInfo):
         print "{} games added.".format(len(gamelist))
         exportList(gamelist, gamelist_path)
 
+
+
+
+
+if os.getuid() == 0:
+    username = os.getenv("SUDO_USER")
+    homepath = os.path.expanduser('~'+username+'/')
+else:
+    homepath = os.path.expanduser('~')
+
+essettings_path = homepath + "/.emulationstation/es_systems.cfg"
+gamelists_path = homepath + "/.emulationstation/gamelists/"
+boxart_path = homepath + "/.emulationstation/downloaded_images/"
+
+if not os.path.exists(essettings_path):
+    essettings_path = "/etc/emulationstation/es_systems.cfg"
+
 try:
-    if os.getuid() == 0:
-        os.environ['HOME']="/home/"+os.getenv("SUDO_USER")
     config=open(essettings_path)
 except IOError as e:
     sys.exit("Error when reading config file: %s \nExiting.." % e.strerror)

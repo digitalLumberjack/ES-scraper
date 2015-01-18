@@ -2,7 +2,7 @@ ES-scraper
 =====================
 ```
 usage: scraper.py [-h] [-w pixels] [-t pixels] [-pisize] [-noimg] [-v] [-f]
-                  [-crc] [-p] [-l] [-newpath] [-fix]
+                  [-crc] [-p] [-l]
 
 ES-scraper, a scraper for EmulationStation
 
@@ -19,7 +19,6 @@ optional arguments:
   -crc        CRC scraping
   -p          partial scraping (per console)
   -l          i'm feeling lucky (use first result)
-  -newpath    gamelist & boxart are written in $HOME/.emulationstation/%NAME%/
 ```
 
 Quick script written in Python that uses various online sources to scrape artwork and game info and saves it as XML files to be read by EmulationStation.

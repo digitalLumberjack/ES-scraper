@@ -1,0 +1,202 @@
+<platforms>
+	<platform>
+		<es>3do</es>
+		<db>3DO</db>
+	</platform>
+	<platform>
+		<es>amiga</es>
+		<db>Amiga</db>
+	</platform>
+	<platform>
+		<es>amstradcpc</es>
+		<db>Amstrad CPC</db>
+	</platform>
+	<platform>
+		<es>arcade</es>
+		<db>Arcade</db>
+	</platform>
+	<platform>
+		<es>atari2600</es>
+		<db>Atari 2600</db>
+	</platform>
+	<platform>
+		<es>atari5200</es>
+		<db>Atari 5200</db>
+	</platform>
+	<platform>
+		<es>atari7800</es>
+		<db>Atari 7800</db>
+	</platform>
+	<platform>
+		<es>atarilynx</es>
+		<db>Atari Lynx</db>
+	</platform>
+	<platform>
+		<es>atarijaguar</es>
+		<db>Atari Jaguar</db>
+	</platform>
+	<platform>
+		<es>atarijaguarcd</es>
+		<db>Atari Jaguar CD</db>
+	</platform>
+	<platform>
+		<es>atarixe</es>
+		<db>Atari XE</db>
+	</platform>
+	<platform>
+		<es>colecovision</es>
+		<db>Colecovision</db>
+	</platform>
+	<platform>
+		<es>c64</es>
+		<db>Commodore 64</db>
+	</platform>
+	<platform>
+		<es>intellivision</es>
+		<db>Intellivision</db>
+	</platform>
+	<platform>
+		<es>macintosh</es>
+		<db>Mac OS</db>
+	</platform>
+	<platform>
+		<es>xbox</es>
+		<db>Microsoft Xbox</db>
+	</platform>
+	<platform>
+		<es>xbox360</es>
+		<db>Microsoft Xbox 360</db>
+	</platform>
+	<platform>
+		<es>neogeo</es>
+		<db>NeoGeo</db>
+	</platform>
+	<platform>
+		<es>ngp</es>
+		<db>Neo Geo Pocket</db>
+	</platform>
+	<platform>
+		<es>ngpc</es>
+		<db>Neo Geo Pocket Color</db>
+	</platform>
+	<platform>
+		<es>n3ds</es>
+		<db>Nintendo 3DS</db>
+	</platform>
+	<platform>
+		<es>n64</es>
+		<db>Nintendo 64</db>
+	</platform>
+	<platform>
+		<es>nds</es>
+		<db>Nintendo DS</db>
+	</platform>
+	<platform>
+		<es>nes</es>
+		<db>Nintendo Entertainment System (NES)</db>
+	</platform>
+	<platform>
+		<es>gb</es>
+		<db>Nintendo Game Boy</db>
+	</platform>
+	<platform>
+		<es>gba</es>
+		<db>Nintendo Game Boy Advance</db>
+	</platform>
+	<platform>
+		<es>gbc</es>
+		<db>Nintendo Game Boy Color</db>
+	</platform>
+	<platform>
+		<es>gc</es>
+		<db>Nintendo GameCube</db>
+	</platform>
+	<platform>
+		<es>wii</es>
+		<db>Nintendo Wii</db>
+	</platform>
+	<platform>
+		<es>wiiu</es>
+		<db>Nintendo Wii U</db>
+	</platform>
+	<platform>
+		<es>pc</es>
+		<db>PC</db>
+	</platform>
+	<platform>
+		<es>sega32x</es>
+		<db>Sega 32X</db>
+	</platform>
+	<platform>
+		<es>segacd</es>
+		<db>Sega CD</db>
+	</platform>
+	<platform>
+		<es>dreamcast</es>
+		<db>Sega Dreamcast</db>
+	</platform>
+	<platform>
+		<es>gamegear</es>
+		<db>Sega Game Gear</db>
+	</platform>
+	<platform>
+		<es>genesis</es>
+		<db>Sega Genesis</db>
+	</platform>
+	<platform>
+		<es>mastersystem</es>
+		<db>Sega Master System</db>
+	</platform>
+	<platform>
+		<es>megadrive</es>
+		<db>Sega Mega Drive</db>
+	</platform>
+	<platform>
+		<es>saturn</es>
+		<db>Sega Saturn</db>
+	</platform>
+	<platform>
+		<es>psx</es>
+		<db>Sony Playstation</db>
+	</platform>
+	<platform>
+		<es>ps2</es>
+		<db>Sony Playstation 2</db>
+	</platform>
+	<platform>
+		<es>ps3</es>
+		<db>Sony Playstation 3</db>
+	</platform>
+	<platform>
+		<es>ps4</es>
+		<db>Sony Playstation 4</db>
+	</platform>
+	<platform>
+		<es>psvita</es>
+		<db>Sony Playstation Vita</db>
+	</platform>
+	<platform>
+		<es>psp</es>
+		<db>Sony PSP</db>
+	</platform>
+	<platform>
+		<es>snes</es>
+		<db>Super Nintendo (SNES)</db>
+	</platform>
+	<platform>
+		<es>pcengine</es>
+		<db>TurboGrafx 16</db>
+	</platform>
+	<platform>
+		<es>wonderswan</es>
+		<db>WonderSwan</db>
+	</platform>
+	<platform>
+		<es>wonderswancolor</es>
+		<db>WonderSwan Color</db>
+	</platform>
+	<platform>
+		<es>zxspectrum</es>
+		<db>Sinclair ZX Spectrum</db>
+	</platform>
+</platforms>

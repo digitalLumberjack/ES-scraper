@@ -14,6 +14,7 @@ import urllib2
 from xml.etree import ElementTree as ET
 from xml.etree.ElementTree import Element, SubElement
 import zlib
+import glob
 
 SCUMMVM = False
 arcaderoms = {}
@@ -39,6 +40,7 @@ GAMESLIST_URL = GAMESDB_BASE + "GetGamesList.php"
 DEFAULT_WIDTH  = 375
 DEFAULT_HEIGHT = 350
 
+gamesdb_platforms = {}
 
 # Used to signal user wants to manually define title from results
 class ManualTitleInterrupt(Exception):
@@ -51,6 +53,12 @@ def fixExtension(file):
     newfile = "%s.%s" % (os.path.splitext(file)[0],imghdr.what(file))
     os.rename(file, newfile)
     return newfile
+
+def getPlatforms():
+    platforms = ET.parse('./TheGameDbPlatforms.xml')
+    platformsroot = platforms.getroot()
+    for platform in platformsroot:
+        gamesdb_platforms[platform.find('es').text] = platform.find('db').text
 
 def getArcadeRomNames():
     fbafile=open("./fba2x.txt")
@@ -77,17 +85,12 @@ def readConfig(file):
     configroot = config.getroot()
     for child in configroot:
         name = child.find('name').text
-        path = child.find('path').text
+        path = re.sub('^~', homepath, child.find('path').text, 1)
         ext = child.find('extension').text
         platform = child.find('platform').text
-        p = child.find('platformid')
-        if child.find('platformid') is None:
-            print name, path, ext, platform
-        else:
-            pid = p.text
-            system=(name,path,ext,pid,platform)
+        if len(glob.glob(path+'/*.*')) > 0:
+            system=(name,path,ext,platform)
             systems.append(system)
-            print name, path, ext, pid, platform
     return systems
 
 def crc(fileName):
@@ -111,13 +114,6 @@ def indent(elem, level=0):
         if level and (not elem.tail or not elem.tail.strip()):
             elem.tail = i
 
-def getPlatformName(id):
-    req = urllib2.Request(PLATFORM_URL, urllib.urlencode({'id': id}),
-                          headers={'User-Agent' : "RetroPie Scraper Browser"})
-    data = urllib2.urlopen( req )
-    platform_data = ET.parse(data)
-    return platform_data.find('Platform/Platform').text
-
 def exportList(gamelist, gamelist_path):
     if gamelistExists and args.f is False:
         for game in gamelist.iter("game"):
@@ -139,16 +135,14 @@ def getFiles(base):
             dict.add(filepath)
     return dict
 
-def getPlatformGameList(platformID):
-    platform = getPlatformName(platformID)
+def getPlatformGameList(platform):
     gamelist = urllib2.Request(GAMESLIST_URL, urllib.urlencode({'platform' : platform}),
                                headers={'User-Agent' : "RetroPie Scraper Browser"})
     return ET.parse(urllib2.urlopen(gamelist)).getroot()
 
-def getGameInfo(file, platformID, gamelist):
+def getGameInfo(file, platform, gamelist):
     title = re.sub(r'\[.*?\]|\(.*?\)', '', os.path.splitext(os.path.basename(file))[0]).strip()
     # Retrieve full game data using ID
-    platform = getPlatformName(platformID)
     if platform == "Arcade" : title = getRealArcadeTitle(title)	
     results = gamelist.findall('Game')
     options = []
@@ -431,7 +425,8 @@ def scanFiles(SystemInfo):
         SCUMMVM = True
     folderRoms = SystemInfo[1]
     extension = SystemInfo[2]
-    platformID = SystemInfo[3]
+    platformShort = SystemInfo[3]
+    platform = gamesdb_platforms[platformShort]
 
     global gamelistExists
     global existinglist
@@ -447,7 +442,7 @@ def scanFiles(SystemInfo):
         print "%s : %s" % (destinationFolder, e.strerror)
         return
 
-    platform_gamelist = getPlatformGameList(platformID)
+    platform_gamelist = getPlatformGameList(platform)
 
     print "Scanning folder..(%s)" % folderRoms
     gamelist_path = gamelists_path+"%s/gamelist.xml" % emulatorname
@@ -476,7 +471,7 @@ def scanFiles(SystemInfo):
 
                     print "\nTrying to identify %s.." % files
 
-                    data = getGameInfo(filepath, platformID, platform_gamelist)
+                    data = getGameInfo(filepath, platform, platform_gamelist)
 
                     if data is None:
                         continue
@@ -589,6 +584,7 @@ except IOError as e:
     sys.exit("Error when reading config file: %s \nExiting.." % e.strerror)
 
 ES_systems = readConfig(config)
+getPlatforms()
 getArcadeRomNames()
 print parser.description
 
@@ -625,3 +621,4 @@ else:
         scanFiles(ES_systems[i])
 
 print "All done!"
+

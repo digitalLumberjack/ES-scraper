@@ -2,7 +2,7 @@ ES-scraper
 =====================
 ```
 usage: scraper.py [-h] [-w pixels] [-t pixels] [-pisize] [-noimg] [-v] [-f]
-                  [-crc] [-p] [-l]
+                  [-p] [-l]
 
 ES-scraper, a scraper for EmulationStation
 
@@ -16,7 +16,6 @@ optional arguments:
   -noimg      disables boxart downloading
   -v          verbose output
   -f          force re-scraping (ignores and overwrites the current gamelist)
-  -crc        CRC scraping
   -p          partial scraping (per console)
   -l          i'm feeling lucky (use first result if the score is greater than 1)
 ```

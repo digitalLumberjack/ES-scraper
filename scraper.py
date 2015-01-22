@@ -26,7 +26,7 @@ parser.add_argument("-pisize", help="use best Raspberry Pi dimensions (375 x 350
 parser.add_argument("-noimg", help="disables boxart downloading", action='store_true')
 parser.add_argument("-v", help="verbose output", action='store_true')
 parser.add_argument("-f", help="force re-scraping (ignores and overwrites the current gamelist)", action='store_true')
-parser.add_argument("-crc", help="CRC scraping", action='store_true')
+#parser.add_argument("-crc", help="CRC scraping", action='store_true')
 parser.add_argument("-p", help="partial scraping (per console)", action='store_true')
 parser.add_argument("-l", help="i'm feeling lucky (use first result)", action='store_true')
 args = parser.parse_args()

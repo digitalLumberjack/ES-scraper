@@ -29,6 +29,10 @@ parser.add_argument("-f", help="force re-scraping (ignores and overwrites the cu
 parser.add_argument("-crc", help="CRC scraping", action='store_true')
 parser.add_argument("-p", help="partial scraping (per console)", action='store_true')
 parser.add_argument("-l", help="i'm feeling lucky (use first result)", action='store_true')
+parser.add_argument("-name", help="manually specify a name, ignore es_settings.cfg (must be used with -platform)", type=str)
+parser.add_argument("-rompath", help="manually specify a path, ignore es_settings.cfg (used with -name and -platform)", type=str)
+parser.add_argument("-platform", help="manually specify a platform for ROMs in 'rompath', ignore es_settings.cfg (must be used with -name", type=str)
+parser.add_argument("-ext", help="manually specify extensions for 'rompath', ignore es_settings.cfg (used with -name and -platform)", type=str)
 args = parser.parse_args()
 
 # URLs for retrieving from TheGamesDB API
@@ -465,7 +469,7 @@ def scanFiles(SystemInfo):
     for root, dirs, allfiles in os.walk(folderRoms, followlinks=True):
         allfiles.sort()
         for files in allfiles:
-            if files.endswith(tuple(extension.split(' '))):
+            if extension=="" or files.endswith(tuple(extension.split(' '))):
                 try:
                     filepath = "./%s" % files
                     filename = os.path.splitext(files)[0]
@@ -580,15 +584,36 @@ essettings_path = homepath + "/.emulationstation/es_systems.cfg"
 gamelists_path = homepath + "/.emulationstation/gamelists/"
 boxart_path = homepath + "/.emulationstation/downloaded_images/"
 
-if not os.path.exists(essettings_path):
-    essettings_path = "/etc/emulationstation/es_systems.cfg"
 
-try:
-    config=open(essettings_path)
-except IOError as e:
-    sys.exit("Error when reading config file: %s \nExiting.." % e.strerror)
+if args.name and args.platform:
 
-ES_systems = readConfig(config)
+    if args.rompath:
+        rompath = args.rompath
+    else:
+        rompath = homepath+"/RetroPie/roms/"+args.name
+
+    if args.ext:
+        ext = args.ext
+    else:
+        ext = ""
+    
+    ES_systems = [(args.name,rompath,ext,args.platform)]
+    
+else:
+
+    if not os.path.exists(essettings_path):
+        essettings_path = "/etc/emulationstation/es_systems.cfg"
+
+    try:
+        config=open(essettings_path)
+    except IOError as e:
+        sys.exit("Error when reading config file: %s \nExiting.." % e.strerror)
+
+    ES_systems = readConfig(config)
+
+
+
+
 getPlatforms()
 getArcadeRomNames()
 print parser.description

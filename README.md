@@ -1,8 +1,8 @@
 ES-scraper
 =====================
 ```
-usage: scraper.py [-h] [-w pixels] [-t pixels] [-pisize] [-noimg] [-v] [-f]
-                  [-p] [-l]
+usage: scraper.py [-h] [-w pixels] [-t pixels] [-pisize] [-noimg] [-v] [-f] [-p] [-l]
+                  [-name name -platform name [-rompath path] [-ext extensions]]
 
 ES-scraper, a scraper for EmulationStation
 
@@ -18,6 +18,18 @@ optional arguments:
   -f          force re-scraping (ignores and overwrites the current gamelist)
   -p          partial scraping (per console)
   -l          i'm feeling lucky (use first result if the score is greater than 1)
+  -name       the "name" from es_settings.cfg - this sets the path for the gamelsit
+              - must be used with platform option
+              (ex: mame)
+  -platform   Platform Name from http://www.emulationstation.org/gettingstarted.html 
+              - must be used with name option
+              (ex: arcade)
+  -rompath    optional path to ROMs - if not supplied, rompath is build from name option
+              - used with name and platform arguments
+              (ex: ~/RetroPie/roms/mame)
+  -ext        option extension list for ROMs - if not supplied, all files are matched
+              - used with name and platform arguments
+              (ex: ".zip .ZIP")
 ```
 
 Quick script written in Python that uses various online sources to scrape artwork and game info and saves it as XML files to be read by EmulationStation.
@@ -31,4 +43,26 @@ Usage
 =====================
 * If you haven't done so, please update ES before running this script.
 * Run the script.
+
+Examples:
+```
+$ python scraper.py -pisize -l
+```
+on RetroPie, this is the easiest, fastest way to run the script
+
+```
+$ python scraper.py -pisize
+```
+same as above, but the script will prompt each ROM
+
+```
+$ python scraper.py -pisize -p
+```
+same as above, but the script will prompt for a single platform
+
+```
+$ python scraper.py -pisize -name mame -platform arcade -ext ".zip .ZIP"
+```
+(use if issues parsing es_systems.cfg)
+scrape /home/pi/RetroPie/roms/mame/*.(zip|ZIP) ROMS and scrape titles from the arcade platform
 

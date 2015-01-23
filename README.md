@@ -45,24 +45,25 @@ Usage
 * Run the script.
 
 Examples:
+
+on RetroPie, this is the easiest, fastest way to run the script
 ```
 $ python scraper.py -pisize -l
 ```
-on RetroPie, this is the easiest, fastest way to run the script
 
+same as above, but the script will prompt each ROM
 ```
 $ python scraper.py -pisize
 ```
-same as above, but the script will prompt each ROM
 
+same as above, but the script will prompt for a single platform
 ```
 $ python scraper.py -pisize -p
 ```
-same as above, but the script will prompt for a single platform
 
+scrape /home/pi/RetroPie/roms/mame/*.(zip|ZIP) ROMS and scrape titles from the arcade platform
 ```
 $ python scraper.py -pisize -name mame -platform arcade -ext ".zip .ZIP"
 ```
 (use if issues parsing es_systems.cfg)
-scrape /home/pi/RetroPie/roms/mame/*.(zip|ZIP) ROMS and scrape titles from the arcade platform
 

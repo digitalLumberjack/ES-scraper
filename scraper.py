@@ -26,7 +26,7 @@ parser.add_argument("-pisize", help="use best Raspberry Pi dimensions (375 x 350
 parser.add_argument("-noimg", help="disables boxart downloading", action='store_true')
 parser.add_argument("-v", help="verbose output", action='store_true')
 parser.add_argument("-f", help="force re-scraping (ignores and overwrites the current gamelist)", action='store_true')
-#parser.add_argument("-crc", help="CRC scraping", action='store_true')
+parser.add_argument("-crc", help="CRC scraping", action='store_true')
 parser.add_argument("-p", help="partial scraping (per console)", action='store_true')
 parser.add_argument("-l", help="i'm feeling lucky (use first result)", action='store_true')
 args = parser.parse_args()
@@ -84,13 +84,18 @@ def readConfig(file):
     config = ET.parse(file)
     configroot = config.getroot()
     for child in configroot:
-        name = child.find('name').text
-        path = re.sub('^~', homepath, child.find('path').text, 1)
-        ext = child.find('extension').text
-        platform = child.find('platform').text
-        if len(glob.glob(path+'/*.*')) > 0:
-            system=(name,path,ext,platform)
-            systems.append(system)
+        nameElement = child.find('name')
+        pathElement = child.find('path')
+        platformElement = child.find('platform')
+        extElement = child.find('extension')
+        if nameElement is not None and pathElement is not None and platformElement is not None and extElement is not None:
+            name = nameElement.text
+            path = re.sub('^~', homepath, pathElement.text, 1)
+            ext = extElement.text
+            platform = platformElement.text
+            if len(glob.glob(path+'/*.*')) > 0:
+                system=(name,path,ext,platform)
+                systems.append(system)
     return systems
 
 def crc(fileName):

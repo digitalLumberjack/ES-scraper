@@ -87,7 +87,7 @@ def readConfig(file):
     systems=[]
     config = ET.parse(file)
     configroot = config.getroot()
-    for child in configroot:
+    for child in configroot.findall('system'):
         nameElement = child.find('name')
         pathElement = child.find('path')
         platformElement = child.find('platform')
@@ -97,9 +97,30 @@ def readConfig(file):
             path = re.sub('^~', homepath, pathElement.text, 1)
             ext = extElement.text
             platform = platformElement.text
-            if len(glob.glob(path+'/*.*')) > 0:
+            numfiles = len(glob.glob(path+'/*.*'))
+            if numfiles > 0:
                 system=(name,path,ext,platform)
                 systems.append(system)
+        if args.v:
+            print "SYSTEM:"
+            if nameElement is not None:
+                print "  Name: %s" % nameElement.text
+            else:
+                print "  Name: <missing>"
+            if pathElement is not None:
+                print "  Path: %s" % re.sub('^~', homepath, pathElement.text, 1)
+            else:
+                print "  Path: <missing>"
+            if platformElement is not None:
+                print "  Platform: %s" % platformElement.text
+            else:
+                print "  Platform: <missing>"
+            if extElement is not None:
+                print "  Ext: %s" % extElement.text
+            else:
+                print "  Ext: <missing>"
+            print "  Potential ROMs: %s" % str(numfiles)
+                
     return systems
 
 def crc(fileName):

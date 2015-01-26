@@ -97,7 +97,7 @@ def readConfig(file):
             path = re.sub('^~', homepath, pathElement.text, 1)
             ext = extElement.text
             platform = platformElement.text
-            numfiles = len(glob.glob(path+'/*.*'))
+            numfiles = len(glob.glob(path+'/**'))
             if numfiles > 0:
                 system=(name,path,ext,platform)
                 systems.append(system)
@@ -492,7 +492,8 @@ def scanFiles(SystemInfo):
         for files in allfiles:
             if extension=="" or files.endswith(tuple(extension.split(' '))):
                 try:
-                    filepath = "./%s" % files
+                    filepath = os.path.abspath(os.path.join(root, files))
+                    filepath = filepath.replace(folderRoms, ".")
                     filename = os.path.splitext(files)[0]
 
                     if gamelistExists and not args.f:

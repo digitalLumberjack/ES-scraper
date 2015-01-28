@@ -377,6 +377,9 @@ def getGenres(nodes):
 
     return genres if len(genres)>0 else None
 
+def getPlayers(nodes):
+    return getText(nodes.find('Players'))
+
 def resizeImage(img, output):
     maxWidth = args.w
     maxHeight = args.t
@@ -537,6 +540,7 @@ def scanFiles(SystemInfo):
                     str_pub = getPublisher(result)
                     str_dev = getDeveloper(result)
                     str_rating = getRating(result)
+                    str_players = getPlayers(result)
                     lst_genres = getGenres(result)
 
                     if str_title is not None:
@@ -550,6 +554,7 @@ def scanFiles(SystemInfo):
                         publisher = SubElement(game, 'publisher')
                         developer = SubElement(game, 'developer')
                         rating = SubElement(game, 'rating')
+                        players = SubElement(game, 'players')
                         genres = SubElement(game, 'genres')
 
                         id.text = str_id
@@ -595,6 +600,9 @@ def scanFiles(SystemInfo):
                         rating.text = "%.6f" % flt_rating
                     else:
                         rating.text = "0.000000"
+
+                    if str_players is not None:
+                        players.text = str_players
 
                     if lst_genres is not None:
                         for genre in lst_genres:

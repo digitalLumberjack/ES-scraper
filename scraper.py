@@ -49,6 +49,8 @@ gamesdb_platforms = {}
 # Used to signal user wants to manually define title from results
 class ManualTitleInterrupt(Exception):
     pass
+class ManualAllPlatformInterrupt(Exception):
+    pass
 
 def normalize(s):
    return ''.join((c for c in unicodedata.normalize('NFKD', unicode(s)) if unicodedata.category(c) != 'Mn'))
@@ -182,7 +184,13 @@ def getGameInfo(file, platforms, gamelists):
         title = re.sub('(\(.*?\))', '', title)
         return title
 
-    def getTitleOptions(title, results, platform):
+    def getAllPlatformTitle(title):
+        gamelist = urllib2.Request(GAMESLIST_URL, urllib.urlencode({'name' : title}),
+                               headers={'User-Agent' : "RetroPie Scraper Browser"})
+        platformgamelist = ET.parse(urllib2.urlopen(gamelist)).getroot()
+        return getTitleOptions(title, platformgamelist.findall('Game'))
+        
+    def getTitleOptions(title, results):
         options = []
         ch_exclude = set(',:&!')
         common_words = ['in','of','the','and','to','a','-']
@@ -222,7 +230,7 @@ def getGameInfo(file, platforms, gamelists):
                 #print "%s" % '|'.join(word_list)
                 game_rank = len( re.findall("(%s)" % '|'.join(word_list), check_title, re.IGNORECASE) )
             if game_rank:
-                options.append((game_rank, getTitle(v), getGamePlatform(v), getId(v), platform))
+                options.append((game_rank, getTitle(v), getGamePlatform(v), getId(v)))
         return options
 
     for (i, platform) in enumerate(platforms):
@@ -232,7 +240,7 @@ def getGameInfo(file, platforms, gamelists):
 
         # Search for matching title options
         if len(results) > 1:
-            options.extend(getTitleOptions(title, results, platform))
+            options.extend(getTitleOptions(title, results))
 
 
     options = sorted(options, key=lambda x: (-x[0], x[1]))
@@ -269,15 +277,23 @@ def getGameInfo(file, platforms, gamelists):
             options = []
             for (i, platform) in enumerate(platforms):
                 results = gamelists[i].findall('Game')
-                options.extend(getTitleOptions(new_title, results, platform))
-
+                options.extend(getTitleOptions(new_title, results))
             options = sorted(options, key=lambda x: (-x[0], x[1]))
+        except ManualAllPlatformInterrupt:
+            # Allow user to re-enter name of game title and perform search of all platforms
+            readline.set_startup_hook(lambda: readline.insert_text(title))
+            try:
+                new_title = raw_input("Enter new title: ")
+            finally:
+                readline.set_startup_hook()
+            print " ~ Searching for '%s' [%s]..." % (new_title, os.path.basename(file))
+            options = sorted(getAllPlatformTitle(new_title), key=lambda x: (-x[0], x[1]))
             
         except Exception as e:
             print "Invalid selection (%s) " % e
 
     try:
-        gamereq = urllib2.Request(GAMEINFO_URL, urllib.urlencode({'id': result[3], 'platform' : result[4]}),
+        gamereq = urllib2.Request(GAMEINFO_URL, urllib.urlencode({'id': result[3], 'platform' : result[2]}),
                                   headers={'User-Agent' : "RetroPie Scraper Browser"})
         remotedata = urllib2.urlopen( gamereq )
         data = ET.parse(remotedata).getroot()
@@ -410,7 +426,7 @@ def chooseResult(options):
         for i, v in enumerate(options):
             rank  = v[0]
             title = v[1]
-            platform = v[4]
+            platform = v[2]
             try:
                 print " [%s] %s [%s]  (+%s)" % (i, title, platform, rank)
             except Exception as e:
@@ -420,17 +436,22 @@ def chooseResult(options):
                 print "    ... Limiting to top 40 results (of %s) ..." % len(options)
                 break
         print " [r] -> Enter new title to search"
+        print " [a] -> Search all platforms for title"
         choice = raw_input("Select a result (or press Enter to skip): ")
         if choice in ['r', 'R']:
             raise ManualTitleInterrupt
+        if choice in ['a', 'A']:
+            raise ManualAllPlatformInterrupt
         if not choice and choice != "0":
             return None
         return int(choice)
     else:
         print "* No options found. "
-        choice = raw_input("Enter 'r' to search alternate title, or press Enter to skip): ")
+        choice = raw_input("Enter 'r' to search alternate title, 'a' to search all platforms, or press Enter to skip): ")
         if choice in ['r', 'R']:
             raise ManualTitleInterrupt
+        if choice in ['a', 'A']:
+            raise ManualAllPlatformInterrupt
         if not choice and choice != "0":
             return None
         raise ValueError

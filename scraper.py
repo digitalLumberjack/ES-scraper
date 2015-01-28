@@ -165,16 +165,16 @@ def getFiles(base):
             dict.add(filepath)
     return dict
 
-def getPlatformGameList(platform):
-    gamelist = urllib2.Request(GAMESLIST_URL, urllib.urlencode({'platform' : platform}),
+def getPlatformGameLists(platforms):
+    gamelists = []
+    for (i, platform) in enumerate(platforms):
+        gamelist = urllib2.Request(GAMESLIST_URL, urllib.urlencode({'platform' : platform}),
                                headers={'User-Agent' : "RetroPie Scraper Browser"})
-    return ET.parse(urllib2.urlopen(gamelist)).getroot()
+        gamelists.append(ET.parse(urllib2.urlopen(gamelist)).getroot())
+    return gamelists
 
-def getGameInfo(file, platform, gamelist):
+def getGameInfo(file, platforms, gamelists):
     title = re.sub(r'\[.*?\]|\(.*?\)', '', os.path.splitext(os.path.basename(file))[0]).strip()
-    # Retrieve full game data using ID
-    if platform == "Arcade" : title = getRealArcadeTitle(title)	
-    results = gamelist.findall('Game')
     options = []
 
     def stripRegionStrings(title):
@@ -182,7 +182,7 @@ def getGameInfo(file, platform, gamelist):
         title = re.sub('(\(.*?\))', '', title)
         return title
 
-    def getTitleOptions(title, results):
+    def getTitleOptions(title, results, platform):
         options = []
         ch_exclude = set(',:&!')
         common_words = ['in','of','the','and','to','a','-']
@@ -222,13 +222,20 @@ def getGameInfo(file, platform, gamelist):
                 #print "%s" % '|'.join(word_list)
                 game_rank = len( re.findall("(%s)" % '|'.join(word_list), check_title, re.IGNORECASE) )
             if game_rank:
-                options.append((game_rank, getTitle(v), getGamePlatform(v), getId(v)))
+                options.append((game_rank, getTitle(v), getGamePlatform(v), getId(v), platform))
         return options
 
-    # Search for matching title options
-    if len(results) > 1:
-        options = sorted(getTitleOptions(title, results),
-                         key=lambda x: (-x[0], x[1]))
+    for (i, platform) in enumerate(platforms):
+        # Retrieve full game data using ID
+        if platform == "Arcade" : title = getRealArcadeTitle(title)	
+        results = gamelists[i].findall('Game')
+
+        # Search for matching title options
+        if len(results) > 1:
+            options.extend(getTitleOptions(title, results, platform))
+
+
+    options = sorted(options, key=lambda x: (-x[0], x[1]))
 
     result = None
     while not result:
@@ -259,13 +266,18 @@ def getGameInfo(file, platform, gamelist):
             finally:
                 readline.set_startup_hook()
             print " ~ Searching for '%s' [%s]..." % (new_title, os.path.basename(file))
-            options = sorted(getTitleOptions(new_title, results),
-                             key=lambda x: (-x[0], x[1]))
+            options = []
+            for (i, platform) in enumerate(platforms):
+                results = gamelists[i].findall('Game')
+                options.extend(getTitleOptions(new_title, results, platform))
+
+            options = sorted(options, key=lambda x: (-x[0], x[1]))
+            
         except Exception as e:
             print "Invalid selection (%s) " % e
 
     try:
-        gamereq = urllib2.Request(GAMEINFO_URL, urllib.urlencode({'id': result[3], 'platform' : platform}),
+        gamereq = urllib2.Request(GAMEINFO_URL, urllib.urlencode({'id': result[3], 'platform' : result[4]}),
                                   headers={'User-Agent' : "RetroPie Scraper Browser"})
         remotedata = urllib2.urlopen( gamereq )
         data = ET.parse(remotedata).getroot()
@@ -395,8 +407,9 @@ def chooseResult(options):
         for i, v in enumerate(options):
             rank  = v[0]
             title = v[1]
+            platform = v[4]
             try:
-                print " [%s] %s  (+%s)" % (i, title, rank)
+                print " [%s] %s [%s]  (+%s)" % (i, title, platform, rank)
             except Exception as e:
                 print "Exception! %s %s" % (e, title)
             count += 1
@@ -447,6 +460,14 @@ def autoChooseBestResult(nodes,t):
     else:
         return 0
 
+
+def getPlatformNames(_platforms):
+    platforms = _platforms.split(',')
+    for (i, platform) in enumerate(platforms):
+        if gamesdb_platforms[platform] is not None: platforms[i] = gamesdb_platforms[platform]
+    return platforms
+
+
 def scanFiles(SystemInfo):
     name = SystemInfo[0]
     emulatorname = name
@@ -455,8 +476,7 @@ def scanFiles(SystemInfo):
         SCUMMVM = True
     folderRoms = SystemInfo[1]
     extension = SystemInfo[2]
-    platformShort = SystemInfo[3]
-    platform = gamesdb_platforms[platformShort]
+    platforms = getPlatformNames(SystemInfo[3])
 
     global gamelistExists
     global existinglist
@@ -472,7 +492,7 @@ def scanFiles(SystemInfo):
         print "%s : %s" % (destinationFolder, e.strerror)
         return
 
-    platform_gamelist = getPlatformGameList(platform)
+    platform_gamelists = getPlatformGameLists(platforms)
 
     print "Scanning folder..(%s)" % folderRoms
     gamelist_path = gamelists_path+"%s/gamelist.xml" % emulatorname
@@ -502,7 +522,7 @@ def scanFiles(SystemInfo):
 
                     print "\nTrying to identify %s.." % files
 
-                    data = getGameInfo(filepath, platform, platform_gamelist)
+                    data = getGameInfo(filepath, platforms, platform_gamelists)
 
                     if data is None:
                         continue
@@ -535,7 +555,7 @@ def scanFiles(SystemInfo):
                         id.text = str_id
                         path.text = filepath
                         name.text = str_title
-                        print "Game Found: %s" % str_title
+                        print "Game Found: %s [%s]" % (str_title, getGamePlatform(result))
 
                     if str_des is not None:
                         desc.text = str_des

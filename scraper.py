@@ -26,7 +26,6 @@ parser.add_argument("-pisize", help="use best Raspberry Pi dimensions (375 x 350
 parser.add_argument("-noimg", help="disables boxart downloading", action='store_true')
 parser.add_argument("-v", help="verbose output", action='store_true')
 parser.add_argument("-f", help="force re-scraping (ignores and overwrites the current gamelist)", action='store_true')
-parser.add_argument("-crc", help="CRC scraping", action='store_true')
 parser.add_argument("-p", help="partial scraping (per console)", action='store_true')
 parser.add_argument("-l", help="i'm feeling lucky (use first result)", action='store_true')
 parser.add_argument("-name", help="manually specify a name, ignore es_settings.cfg (must be used with -platform)", type=str)
@@ -124,12 +123,6 @@ def readConfig(file):
             print "  Potential ROMs: %s" % str(numfiles)
                 
     return systems
-
-def crc(fileName):
-    prev = 0
-    for eachLine in open(fileName,"rb"):
-        prev = zlib.crc32(eachLine, prev)
-    return "%X" % (prev & 0xFFFFFFFF)
 
 def indent(elem, level=0):
     i = "\n" + level*"  "
@@ -309,10 +302,7 @@ def getId(nodes):
     return getText(nodes.find("id"))
 
 def getTitle(nodes):
-    if args.crc:
-        return getText(nodes.find("title"))
-    else:
-        return getText(nodes.find("GameTitle"))
+    return getText(nodes.find("GameTitle"))
 
 def getAlternateTitles(nodes):
     titles = []
@@ -322,10 +312,7 @@ def getAlternateTitles(nodes):
     return titles
 
 def getGamePlatform(nodes):
-    if args.crc:
-        return getText(nodes.find("system_title"))
-    else:
-        return getText(nodes.find("Platform"))
+    return getText(nodes.find("Platform"))
 
 def getScummvmTitle(title):
     print "Fetching real title for %s from scummvm.org" % title
@@ -344,50 +331,29 @@ def getRealArcadeTitle(title):
     return arcaderoms[title]
 
 def getDescription(nodes):
-    if args.crc:
-        return getText(nodes.find("description"))
-    else:
-        return getText(nodes.find("Overview"))
+    return getText(nodes.find("Overview"))
 
 def getImage(nodes):
-    if args.crc:
-        return getText(nodes.find("box_front"))
-    else:
-        return getText(nodes.find("Images/boxart[@side='front']"))
+    return getText(nodes.find("Images/boxart[@side='front']"))
 
 def getTGDBImgBase(nodes):
     return nodes.find("baseImgUrl").text
 
 def getRelDate(nodes):
-    if args.crc:
-        return None
-    else:
-        return getText(nodes.find("ReleaseDate"))
+    return getText(nodes.find("ReleaseDate"))
 
 def getPublisher(nodes):
-    if args.crc:
-        return None
-    else:
-        return getText(nodes.find("Publisher"))
+    return getText(nodes.find("Publisher"))
 
 def getDeveloper(nodes):
-    if args.crc:
-        return getText(nodes.find("developer"))
-    else:
-        return getText(nodes.find("Developer"))
+    return getText(nodes.find("Developer"))
 
 def getRating(nodes):
-    if args.crc:
-        return None
-    else:
-        return getText(nodes.find("Rating"))
+    return getText(nodes.find("Rating"))
 
 def getGenres(nodes):
     genres = []
-    if args.crc and nodes.find("genre") is not None:
-        for item in getText(nodes.find("genre")).split('>'):
-            genres.append(item)
-    elif nodes.find("Genres") is not None:
+    if nodes.find("Genres") is not None:
         for item in nodes.find("Genres").iter("genre"):
             genres.append(item.text)
 
@@ -408,10 +374,7 @@ def resizeImage(img, output):
         img.save(output)
 
 def downloadBoxart(path, output):
-    if args.crc:
-        os.system("wget -q %s --output-document=\"%s\"" % (path,output))
-    else:
-        os.system("wget -q http://thegamesdb.net/banners/%s --output-document=\"%s\"" % (path,output))
+    os.system("wget -q http://thegamesdb.net/banners/%s --output-document=\"%s\"" % (path,output))
 
 def skipGame(list, filepath):
     for game in list.iter("game"):
@@ -706,8 +669,6 @@ if args.f:
     print "Re-scraping all games.."
 if args.v:
     print "Verbose mode enabled."
-if args.crc:
-    print "CRC scraping enabled."
 if args.p:
     print "Partial scraping enabled. Systems found:"
     for i,v in enumerate(ES_systems):

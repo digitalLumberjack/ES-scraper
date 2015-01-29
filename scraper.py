@@ -152,14 +152,6 @@ def exportList(gamelist, gamelist_path):
         ET.ElementTree(gamelist).write(gamelist_path)
         print "Done! List saved on %s" % gamelist_path
 
-def getFiles(base):
-    dict = set([])
-    for files in sorted(os.listdir(base)):
-        if files.endswith(tuple(ES_systems[var][2].split(' '))):
-            filepath = os.path.abspath(os.path.join(base, files))
-            dict.add(filepath)
-    return dict
-
 def getPlatformGameLists(platforms):
     gamelists = []
     for (i, platform) in enumerate(platforms):
@@ -304,13 +296,6 @@ def getId(nodes):
 def getTitle(nodes):
     return getText(nodes.find("GameTitle"))
 
-def getAlternateTitles(nodes):
-    titles = []
-    altNode = nodes.find("AlternateTitles")
-    if altNode is not None:
-        titles = [getText(t) for t in altNode.findall("title")]
-    return titles
-
 def getGamePlatform(nodes):
     return getText(nodes.find("Platform"))
 
@@ -335,9 +320,6 @@ def getDescription(nodes):
 
 def getImage(nodes):
     return getText(nodes.find("Images/boxart[@side='front']"))
-
-def getTGDBImgBase(nodes):
-    return nodes.find("baseImgUrl").text
 
 def getRelDate(nodes):
     return getText(nodes.find("ReleaseDate"))

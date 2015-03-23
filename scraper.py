@@ -145,11 +145,11 @@ def exportList(gamelist, gamelist_path):
             existinglist.getroot().append(game)
 
         indent(existinglist.getroot())
-        ET.ElementTree(existinglist.getroot()).write(gamelist_path,short_empty_elements=False)
+        ET.ElementTree(existinglist.getroot()).write(gamelist_path)
         print "Done! %s updated." % gamelist_path
     else:
         indent(gamelist)
-        ET.ElementTree(gamelist).write(gamelist_path,short_empty_elements=False)
+        ET.ElementTree(gamelist).write(gamelist_path)
         print "Done! List saved on %s" % gamelist_path
 
 def getPlatformGameLists(platforms):
@@ -344,6 +344,14 @@ def getGenres(nodes):
 def getPlayers(nodes):
     return getText(nodes.find('Players'))
 
+def getRegion(filename):
+    region = re.search('\((.+?)\)', filename)
+    if region :
+        return region.group(1)
+    else :
+	return ""
+
+
 def resizeImage(img, output):
     maxWidth = args.w
     maxHeight = args.t
@@ -508,6 +516,7 @@ def scanFiles(SystemInfo):
                     str_rating = getRating(result)
                     str_players = getPlayers(result)
                     lst_genres = getGenres(result)
+		    str_region = getRegion(filename)
 
                     if str_title is not None:
                         game = SubElement(gamelist, 'game')
@@ -524,12 +533,12 @@ def scanFiles(SystemInfo):
                         genres = SubElement(game, 'genres')
                         region = SubElement(game, 'region')
                         romtype = SubElement(game, 'romtype')
-			region.text = ""
-			romtype.text = "official" 
+			region.text = str_region
+			romtype.text = "Official" 
                         id.text = str_id
                         path.text = filepath
                         name.text = str_title
-                        print "Game Found: %s [%s]" % (str_title, getGamePlatform(result))
+                        print "Game Found: %s [%s] region : %s" % (str_title, getGamePlatform(result), str_region)
 
                     if str_des is not None:
                         desc.text = str_des

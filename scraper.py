@@ -145,11 +145,11 @@ def exportList(gamelist, gamelist_path):
             existinglist.getroot().append(game)
 
         indent(existinglist.getroot())
-        ET.ElementTree(existinglist.getroot()).write(gamelist_path)
+        ET.ElementTree(existinglist.getroot()).write(gamelist_path,short_empty_elements=False)
         print "Done! %s updated." % gamelist_path
     else:
         indent(gamelist)
-        ET.ElementTree(gamelist).write(gamelist_path)
+        ET.ElementTree(gamelist).write(gamelist_path,short_empty_elements=False)
         print "Done! List saved on %s" % gamelist_path
 
 def getPlatformGameLists(platforms):
@@ -522,7 +522,10 @@ def scanFiles(SystemInfo):
                         rating = SubElement(game, 'rating')
                         players = SubElement(game, 'players')
                         genres = SubElement(game, 'genres')
-
+                        region = SubElement(game, 'region')
+                        romtype = SubElement(game, 'romtype')
+			region.text = ""
+			romtype.text = "official" 
                         id.text = str_id
                         path.text = filepath
                         name.text = str_title

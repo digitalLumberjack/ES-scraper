@@ -351,6 +351,12 @@ def getRegion(filename):
     else :
 	return ""
 
+def getRomType(filename):
+    if "(Proto)" in filename :
+        return "Prototype"
+    else :
+	return "Official"
+
 
 def resizeImage(img, output):
     maxWidth = args.w
@@ -517,6 +523,7 @@ def scanFiles(SystemInfo):
                     str_players = getPlayers(result)
                     lst_genres = getGenres(result)
 		    str_region = getRegion(filename)
+		    str_romtype = getRomType(filename)
 
                     if str_title is not None:
                         game = SubElement(gamelist, 'game')
@@ -534,7 +541,7 @@ def scanFiles(SystemInfo):
                         region = SubElement(game, 'region')
                         romtype = SubElement(game, 'romtype')
 			region.text = str_region
-			romtype.text = "Official" 
+			romtype.text = str_romtype 
                         id.text = str_id
                         path.text = filepath
                         name.text = str_title
@@ -645,6 +652,9 @@ else:
 getPlatforms()
 getArcadeRomNames()
 print parser.description
+
+# force args.pisize
+args.pisize = True
 
 if args.pisize:
     print "Using Raspberry Pi boxart size: (%spx x %spx)" % (DEFAULT_WIDTH, DEFAULT_HEIGHT)

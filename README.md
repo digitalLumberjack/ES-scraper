@@ -29,7 +29,8 @@ optional arguments:
               (ex: ~/RetroPie/roms/mame)
   -ext        option extension list for ROMs - if not supplied, all files are matched
               - used with name and platform arguments
-              (ex: ".zip .ZIP")
+              (ex: ".zip .ZIP")  
+  -stats      shows stats on gamelist, and list missing games.
 ```
 
 Quick script written in Python that uses various online sources to scrape artwork and game info and saves it as XML files to be read by EmulationStation.

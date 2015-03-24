@@ -32,6 +32,8 @@ parser.add_argument("-name", help="manually specify a name, ignore es_settings.c
 parser.add_argument("-rompath", help="manually specify a path, ignore es_settings.cfg (used with -name and -platform)", type=str)
 parser.add_argument("-platform", help="manually specify a platform for ROMs in 'rompath', ignore es_settings.cfg (must be used with -name", type=str)
 parser.add_argument("-ext", help="manually specify extensions for 'rompath', ignore es_settings.cfg (used with -name and -platform)", type=str)
+parser.add_argument("-stats", help="check the gamelists files and return stats", action='store_true')
+
 args = parser.parse_args()
 
 # URLs for retrieving from TheGamesDB API
@@ -647,7 +649,77 @@ else:
     ES_systems = readConfig(config)
 
 
+def statsSystem(SystemInfo) :
+    name = SystemInfo[0]
+    emulatorname = name
+    if name == "scummvm":
+        global SCUMMVM
+        SCUMMVM = True
+    folderRoms = SystemInfo[1]
+    extension = SystemInfo[2]
+    platforms = getPlatformNames(SystemInfo[3])
 
+    global gamelistExists
+    global existinglist
+    gamelistExists = False
+
+    gamelist = Element('gameList')
+    folderRoms = os.path.expanduser(folderRoms)
+
+    destinationFolder = folderRoms;
+    try:
+        os.chdir(destinationFolder)
+    except OSError as e:
+        print "%s : %s" % (destinationFolder, e.strerror)
+        return
+    print "-------------------------------"
+    print "Starting system stats : %s" % name
+
+    print "Scanning folder..(%s)" % folderRoms
+    gamelist_path = gamelists_path+"%s/gamelist.xml" % emulatorname
+
+    if os.path.exists(gamelist_path):
+        try:
+            existinglist = ET.parse(gamelist_path)
+            gamelistExists=True
+            if args.v:
+                print "Gamelist already exists: %s" % gamelist_path
+        except:
+            gamelistExists = False
+            print "There was an error parsing the list or file is empty"
+	    return
+
+    scrapped = 0
+    total = 0
+   
+    for root, dirs, allfiles in os.walk(folderRoms, followlinks=True):
+
+        allfiles.sort()
+        for files in allfiles:
+            if extension=="" or files.endswith(tuple(extension.split(' '))):
+		total += 1
+                try:
+                    filepath = os.path.abspath(os.path.join(root, files))
+                    filepath = filepath.replace(folderRoms, ".")
+                    filename = os.path.splitext(files)[0]
+
+                    if gamelistExists:
+                        if skipGame(existinglist,filepath):
+			    scrapped += 1
+                            continue
+                	print "Not scrapped : %s" % filename
+
+                except KeyboardInterrupt:
+                    print "Ctrl+C detected. Closing work now..."
+                    break
+                except Exception as e:
+                    print "Exception caught! %s" % e
+
+    print "System Stats : %s" % name
+    print "Total games in rom dir : %d" % total    
+    print "Scrapped games in gamelist.xml : %d" % scrapped
+    print "Games to scrap : %d" % (total - scrapped)
+    
 
 getPlatforms()
 getArcadeRomNames()
@@ -673,18 +745,35 @@ if args.f:
     print "Re-scraping all games.."
 if args.v:
     print "Verbose mode enabled."
-if args.p:
-    print "Partial scraping enabled. Systems found:"
-    for i,v in enumerate(ES_systems):
-        print "[%s] %s" % (i,v[0])
-    try:
-        var = int(raw_input("System ID: "))
-        scanFiles(ES_systems[var])
-    except:
-        sys.exit()
+if args.stats:
+    print "Creating stats"
+    if args.p:
+        print "Partial stats enabled. Systems found:"
+        for i,v in enumerate(ES_systems):
+            print "[%s] %s" % (i,v[0])
+        try:
+            var = int(raw_input("System ID: "))
+            statsSystem(ES_systems[var])
+        except:
+            sys.exit()
+    else:
+        for i,v in enumerate(ES_systems):
+            statsSystem(ES_systems[i])
+
+
 else:
-    for i,v in enumerate(ES_systems):
-        scanFiles(ES_systems[i])
+    if args.p:
+        print "Partial scraping enabled. Systems found:"
+        for i,v in enumerate(ES_systems):
+            print "[%s] %s" % (i,v[0])
+        try:
+            var = int(raw_input("System ID: "))
+            scanFiles(ES_systems[var])
+        except:
+            sys.exit()
+    else:
+        for i,v in enumerate(ES_systems):
+            scanFiles(ES_systems[i])
 
 print "All done!"
 

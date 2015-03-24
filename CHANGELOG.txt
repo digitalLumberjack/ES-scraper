@@ -6,3 +6,4 @@ This project adheres to [Semantic Versioning](http://semver.org/).
 ### Changed
 - Added romtype and region tags
 - Automatically resize image for rpi
+- Added -stats argument
